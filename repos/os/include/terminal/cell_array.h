@@ -89,7 +89,7 @@ class Cell_array
 
 			_line_dirty = new (alloc) bool[num_lines];
 			for (unsigned i = 0; i < num_lines; i++)
-				_line_dirty[i] = false;
+				_line_dirty[i] = true;
 
 			for (unsigned i = 0; i < num_lines; i++)
 				_array[i] = new (alloc) CELL[num_cols];
