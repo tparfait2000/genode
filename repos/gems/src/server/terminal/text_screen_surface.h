@@ -156,7 +156,7 @@ class Terminal::Text_screen_surface
 				Rect const all(Point(0, 0), _geometry.fb_size);
 				_geometry.fb_rect().cut(_geometry.used_rect(), &r[0], &r[1], &r[2], &r[3]);
 				for (unsigned i = 0; i < 4; i++)
-					Box_painter::paint(surface, r[i], Color(0, 240, 250));
+					Box_painter::paint(surface, r[i], Color(0, 0, 0));
 			}
 
 			int const clip_top  = 0, clip_bottom = _geometry.fb_size.h(),
