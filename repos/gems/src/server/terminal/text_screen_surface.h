@@ -85,18 +85,9 @@ class Terminal::Text_screen_surface
 			}
 
 			/**
-			 * Return  start position of character grid
-			 *
-			 * Leave PAD_LEFT/BOTTOM pixel border at the left/bottom, align to
-			 * left/bottom.
+			 * Return start position of character grid
 			 */
-			Point start() const
-			{
-				enum { PAD_LEFT = 1, PAD_BOTTOM = 1 };
-				return Point(unused_pixels().w() >= PAD_LEFT ? PAD_LEFT : 0,
-				             unused_pixels().h() >= PAD_BOTTOM ? unused_pixels().h() - PAD_BOTTOM
-				                                               : unused_pixels().h());
-			}
+			Point start() const { return Point(1, 1); }
 
 			bool valid() const { return columns*lines > 0; }
 		};
