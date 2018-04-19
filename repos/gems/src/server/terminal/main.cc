@@ -86,7 +86,7 @@ struct Terminal::Main : Character_consumer
 
 	Constructible<Text_screen_surface<PT>> _text_screen_surface { };
 
-	Session::Size _terminal_size { };
+	Area _terminal_size { };
 
 	/*
 	 * Time in milliseconds between a change of the terminal content and the
@@ -173,15 +173,45 @@ void Terminal::Main::_handle_config()
 	 */
 	_framebuffer.switch_to_new_mode();
 
-	try {
-		_text_screen_surface.construct(_heap, _font->font(),
-		                               _color_palette, _framebuffer);
-		_terminal_size = _text_screen_surface->size();
-	}
-	catch (Text_screen_surface<PT>::Invalid_framebuffer_size) {
-		warning("invalid framebuffer size"); }
+	/*
+	 * Distinguish the case where the framebuffer change affects the character
+	 * grid size from the case where merely the pixel position of the character
+	 * grid within the framebuffer changed.
+	 *
+	 * In the former case, the text-screen surface is reallocated and cleared.
+	 * Clients (like ncurses) are expected to respond to a terminal-size change
+	 * with a redraw. In the latter case, the client would skip the redraw. So
+	 * we need to preserve the content and just reposition the character grid.
+	 */
 
-	_root.notify_resized(_terminal_size);
+	try {
+		Text_screen_surface<PT>::Geometry const new_geometry(_font->font(), _framebuffer);
+
+		bool const reconstruct = !_text_screen_surface.constructed() ||
+		                          _text_screen_surface->size() != new_geometry.size();
+		if (reconstruct) {
+			_text_screen_surface.construct(_heap, _font->font(),
+			                               _color_palette, _framebuffer);
+			_terminal_size = _text_screen_surface->size();
+
+		} else {
+			_text_screen_surface->geometry(new_geometry);
+		}
+	}
+	catch (Text_screen_surface<PT>::Geometry::Invalid)
+	{
+		warning("invalid framebuffer size");
+
+		/*
+		 * Make sure to never operate on an invalid-sized framebuffer
+		 *
+		 * If the exception is thrown by the construction of 'new_geometry',
+		 * there may still be a stale '_text_screen_surface'.
+		 */
+		_text_screen_surface.destruct();
+	}
+
+	_root.notify_resized(Session::Size(_terminal_size.w(), _terminal_size.h()));
 	_schedule_flush();
 }
 
