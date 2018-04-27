@@ -205,6 +205,8 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 		append config_of_app "
 		<config xpos=\"[expr ${i} * 50]\" ypos=\"[expr (${i} - 1) * 5 + 2]\" width=\"1024\" height=\"768\"/>"
 	} else {
+		append config_of_app "
+		<config xpos=\"350\" ypos=\"0\" width=\"1024\" height=\"768\"/>"
 		append config_of_app {
 		<config/>}
 	}

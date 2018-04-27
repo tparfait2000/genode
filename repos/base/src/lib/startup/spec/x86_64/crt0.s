@@ -38,6 +38,7 @@
 	/* program entry-point */
 	.global _start
 	_start:
+        jmp _start
 
 	/* initialize GLOBAL OFFSET TABLE */
 	leaq _GLOBAL_OFFSET_TABLE_(%rip), %r15
