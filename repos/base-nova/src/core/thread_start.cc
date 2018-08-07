@@ -93,6 +93,7 @@ void Thread::start()
 	addr_t sp       = _stack->top();
 	addr_t utcb     = reinterpret_cast<addr_t>(&_stack->utcb());
 	Utcb * utcb_obj = reinterpret_cast<Utcb *>(&_stack->utcb());
+        char name[30] = "core_local_ec";
 
 	Affinity::Location location = _affinity;
 
@@ -104,7 +105,7 @@ void Thread::start()
 	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(location.xpos());
 	uint8_t res = create_ec(native_thread().ec_sel,
 	                        platform_specific()->core_pd_sel(), kernel_cpu_id,
-	                        utcb, sp, native_thread().exc_pt_sel, LOCAL_THREAD);
+	                        utcb, sp, native_thread().exc_pt_sel, LOCAL_THREAD, &name);
 	if (res != NOVA_OK) {
 		error("create_ec returned ", res, " cpu=", location.xpos());
 		throw Cpu_session::Thread_creation_failed();

@@ -68,7 +68,8 @@ Echo::Echo(Genode::addr_t utcb_addr)
 	_utcb((Nova::Utcb *)utcb_addr)
 {
 	using namespace Nova;
-
+        char name[30] = "echo";
+	
 	extern Genode::addr_t __initial_sp;
 	Hip const * const hip = reinterpret_cast<Hip *>(__initial_sp);
 
@@ -76,7 +77,7 @@ Echo::Echo(Genode::addr_t utcb_addr)
 	Genode::addr_t const core_pd_sel = hip->sel_exc;
 	uint8_t res = create_ec(_ec_sel, core_pd_sel, boot_cpu(), utcb_addr,
 	                        reinterpret_cast<mword_t>(echo_stack_top()),
-	                        ECHO_EXC_BASE, ECHO_GLOBAL);
+	                        ECHO_EXC_BASE, ECHO_GLOBAL, &name);
 
 	/* make error condition visible by raising an unhandled page fault */
 	if (res != Nova::NOVA_OK) { *reinterpret_cast<unsigned *>(0) = 0xdead; }
