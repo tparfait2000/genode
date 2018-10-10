@@ -1,0 +1,108 @@
+je veux générer à partir du fichier trace de trace-cmd le backtrace avec la liste des adresses et les fichiers sources correspondants, tels qu'on l'obtient dans gdb avec la commande backtrace. 
+Gdb sait déjà générer de backtrace à partir de fichier de symboles (symbols'files). il ne manque donc que le fichier trace (de trace-cmd) et gdb devrait etre capable de générer ce backtrace.
+la commande qemu-system ...  -icount shift=auto,rr=record,rrfile=qemu.out aurait valablement pu faire l'affaire mais actuellement cette option n'est pas supporté avec l'option -enable-kvm qui est pourtant nécessaire pour la utiliser les performance counter et leur PMI. C'est ce qui nous amène à recourir à trace-cmd
+Je veux recourir à gdb et specialement à sa fonction bactrace car je veux pouvoir naviguer entre le bactrace de haut en bas avec up et down, tout en visialisant le déplacement dans le code au fur et à mesure.
+Gdb devra donc partir de la dernière valeur du régistre RIP et afficher exactement la ligne du code correspondant de même que la pile constituée par les 5 dernières fonctions appelées pour en arriver à cette adresse RIP. Ces fonctions sont déduites des 5 dernières adresses RIP précédant le RIP en cours. Ensuite, lorsque l'utilisateur lance up, gdb devra afficher la ligne du code correspodant ainsi que les 5 dernière fonctions appelées de même que la fonction suivante. 
+Puisque tout ceci se fait en offline, on ne peut certainement pas avoir les données sur la valeur des paramètres passés en argument aux fonctions. Mais plus tard on pourra essayer de voir comment faire colaborer qemu éxécuté en mode root avec kvm et trace-cmd pour aboutir à ce comportement et ceci en live
+
+PMI counter interruption
+
+Masking deffered servicing
+La gestion des interruptions externes pendant un processing element
+Les interruptions externes posent deux problème à savoir:
+1- la violation du caractère identique des deux exécutions, 
+2- le déclenchement de deux ou plusieurs interruptions pendant le temps d'un PE.
+
+1- la violation du caractère identique des deux exécutions
+Le fait qu'il est pratiquement impossible d'avoir les deux exécutions d'un PE, identiques si il y a une interruption externe au cours de sa double exécutions, nous amène à terminer le PE dès l'acceptation (acknowlegdement) de interruption. Ainsi, à partir d'un PE initial, on aboutit à deux PEs, séparés par le moment d'interruption tel que le montre la figure 1.
+Si l'interruption se produit pendant la première exécution, il suffit donc d'arreter le processing element à cette exécution
+
+shutdown() include/x86.hpp:45
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+Genode::strlen(char const*) repos/base/include/util/string.h:82
+exc_handler src/ec_exc.cpp:213
+Genode::strlen(char const*) repos/base/include/util/string.h:82
+exc_handler src/ec_exc.cpp:213
+Genode::strlen(char const*) repos/base/include/util/string.h:82
+exc_handler src/ec_exc.cpp:213
+Genode::strlen(char const*) repos/base/include/util/string.h:82
+exc_handler src/ec_exc.cpp:213
+Genode::strlen(char const*) repos/base/include/util/string.h:82
+exc_handler src/ec_exc.cpp:213
+Genode::strlen(char const*) repos/base/include/util/string.h:82
+exc_handler src/ec_exc.cpp:213
+Genode::strlen(char const*) repos/base/include/util/string.h:82
+exc_handler src/ec_exc.cpp:213
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+Lapic::write(Lapic::Register, unsigned int) include/lapic.hpp:84 (0xffffffff8100e9ce)
+Lapic::cancel_pmi() src/lapic.cpp:284 (0xffffffff8100e9b5)
+void Msr::write<int>(Msr::Register, int) include/msr.hpp:130 (discriminator 4) (0xffffffff8100e9b6)
+void Msr::write<unsigned long long>(Msr::Register, unsigned long long) include/msr.hpp:130 (discriminator 4) (0xffffffff8100e8af)
+Lapic::write(Lapic::Register, unsigned int) include/lapic.hpp:84 (discriminator 4) (0xffffffff8100e8a3)
+Lapic::program_pmi(unsigned long long) src/lapic.cpp:253 (discriminator 4) (0xffffffff8100e88a)
+void Msr::write<int>(Msr::Register, int) include/msr.hpp:130 (0xffffffff8100e9e0)
+Lapic::cancel_pmi() /src/lapic.cpp:286 (0xffffffff8100e9d9)
+Lapic::write(Lapic::Register, unsigned int) include/lapic.hpp:84 (0xffffffff8100e9ce)
+Lapic::cancel_pmi() src/lapic.cpp:284 (0xffffffff8100e9b5)
+void Msr::write<int>(Msr::Register, int) include/msr.hpp:130 (discriminator 4) (0xffffffff8100e9b6)
+void Msr::write<unsigned long long>(Msr::Register, unsigned long long) include/msr.hpp:130 (discriminator 4) (0xffffffff8100e8af)
+Lapic::write(Lapic::Register, unsigned int) include/lapic.hpp:84 (discriminator 4) (0xffffffff8100e8a3)
+Lapic::program_pmi(unsigned long long) src/lapic.cpp:253 (discriminator 4) (0xffffffff8100e88a)
+void Msr::write<int>(Msr::Register, int) include/msr.hpp:130 (0xffffffff8100e9e0)
+Lapic::cancel_pmi() /src/lapic.cpp:286 (0xffffffff8100e9d9)
+Lapic::write(Lapic::Register, unsigned int) include/lapic.hpp:84 (0xffffffff8100e9ce)
+Lapic::cancel_pmi() src/lapic.cpp:284 (0xffffffff8100e9b5)
+void Msr::write<int>(Msr::Register, int) include/msr.hpp:130 (discriminator 4) (0xffffffff8100e9b6)
+void Msr::write<unsigned long long>(Msr::Register, unsigned long long) include/msr.hpp:130 (discriminator 4) (0xffffffff8100e8af)
+Lapic::write(Lapic::Register, unsigned int) include/lapic.hpp:84 (discriminator 4) (0xffffffff8100e8a3)
+Lapic::program_pmi(unsigned long long) src/lapic.cpp:253 (discriminator 4) (0xffffffff8100e88a)
+void Msr::write<int>(Msr::Register, int) include/msr.hpp:130 (0xffffffff8100e9e0)
+Lapic::cancel_pmi() /src/lapic.cpp:286 (0xffffffff8100e9d9)
+save_counter src/lapic.cpp:232 (discriminator 3) (0xffffffff8100e84f)
+Vmcb::Vmcb(Quota&, unsigned long, unsigned long) src/svm.cpp:37 (0xffffffff8102457f)
+
+
+
+<---
+Lapic::write(Lapic::Register, unsigned int) include/lapic.hpp:84 (0xffffffff8100e9ce)
+Lapic::cancel_pmi() src/lapic.cpp:284 (0xffffffff8100e9b5)
+void Msr::write<int>(Msr::Register, int) include/msr.hpp:130 (discriminator 4) (0xffffffff8100e9b6)
+void Msr::write<unsigned long long>(Msr::Register, unsigned long long) include/msr.hpp:130 (discriminator 4) (0xffffffff8100e8af)
+Lapic::write(Lapic::Register, unsigned int) include/lapic.hpp:84 (discriminator 4) (0xffffffff8100e8a3)
+Lapic::program_pmi(unsigned long long) src/lapic.cpp:253 (discriminator 4) (0xffffffff8100e88a)
+void Msr::write<int>(Msr::Register, int) include/msr.hpp:130 (0xffffffff8100e9e0)
+Lapic::cancel_pmi() /src/lapic.cpp:286 (0xffffffff8100e9d9)
+---(0x50)
+<---
+void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+	<---
+	Genode::strlen(char const*) repos/base/include/util/string.h:82
+	exc_handler src/ec_exc.cpp:213
+	save_counter src/lapic.cpp:232 (discriminator 3) (0xffffffff8100e84f)
+	---(x7)
+	void Io::out<unsigned char>(unsigned int, unsigned char) include/io.hpp:39
+	  	shutdown() include/x86.hpp:45
+unsigned int Io::in<unsigned char>(unsigned int) include/io.hpp:31
+---(x20)
+	
+
+
+A partir d'une valeur hexadécimal, comment afficher directement dans mon kernel l'instruction (movabs $0x10,%rax; hlt, ... )?
+

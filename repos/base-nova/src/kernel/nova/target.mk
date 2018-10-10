@@ -44,7 +44,7 @@ LD_SCRIPT_STATIC = hypervisor.o
 $(TARGET): hypervisor.o
 
 hypervisor.o: $(NOVA_SRC_DIR)/src/hypervisor.ld target.mk
-	$(VERBOSE)$(CC) $(INCLUDES) -DCONFIG_KERNEL_MEMORY=960M -MP -MMD -pipe $(CC_MARCH) -xc -E -P $< -o $@
+	$(VERBOSE)$(CC) $(INCLUDES) -DCONFIG_KERNEL_MEMORY=920M -MP -MMD -pipe $(CC_MARCH) -xc -E -P $< -o $@
 
 clean cleanall:
 	$(VERBOSE)rm -rf $(NOVA_BUILD_DIR)
